@@ -12,11 +12,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'データベース接続エラー' }, { status: 500 });
     }
 
-    const result = await db.prepare('SELECT * FROM fish').all();
+    const dbResult = await db.prepare('SELECT * FROM fish').all();
+
+    // D1の `all()` の結果は { results: [...] } 形式の場合があるため、確認
+    const rawResults = dbResult.results || dbResult; // 結果が直接配列か、resultsプロパティ内か判定
+
+    // キーをスネークケースからキャメルケースに変換
+    const formattedData = rawResults.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      japaneseName: row.japanese_name, // ここで変換
+      classification: row.classification,
+      description: row.description,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
 
     return NextResponse.json({
-      data: result,
-      count: result.length,
+      data: { results: formattedData }, // 変換後のデータを results プロパティに入れる
+      count: formattedData.length,
     });
   } catch (error) {
     console.error('Detailed error:', error);
