@@ -11,5 +11,14 @@
   "observability": {
     "enabled": true
   },
-  "upload_source_maps": true
+  "upload_source_maps": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "okinawa-fish-3540",
+      "database_id": "6e149704-b9f3-41f6-8ab8-48eb8ba40dcd",
+      "preview_database_id": "DB",
+      "migrations_dir": "migrations"
+    }
+  ]
 }
