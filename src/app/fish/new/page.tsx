@@ -1,4 +1,4 @@
-import FishForm from '@/app/components/FishForm';
+import FishForm from '@/components/FishForm';
 
 export default function NewFish() {
   return (

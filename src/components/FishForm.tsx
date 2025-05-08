@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Fish, ApiResponse } from '@/types/fish';
+import { Fish } from '@/types/fish';
+import { createFish } from '@/services/fishService';
 
 export default function FishForm() {
   const [formData, setFormData] = useState({
@@ -66,22 +67,14 @@ export default function FishForm() {
     e.preventDefault();
     if (validateForm()) {
       try {
-        const response = await fetch('/api/fish', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
+        const result = await createFish(formData);
 
-        if (!response.ok) {
-          throw new Error('データの保存に失敗しました');
+        if (!result.success) {
+          throw new Error(result.error || 'データの保存に失敗しました');
         }
 
-        const result = (await response.json()) as ApiResponse;
-        if (result.success) {
-          alert('データが正常に保存されました');
-        }
+        alert('データが正常に保存されました');
+        window.history.back();
       } catch (error) {
         console.error('Error:', error);
         alert('データの保存中にエラーが発生しました');
