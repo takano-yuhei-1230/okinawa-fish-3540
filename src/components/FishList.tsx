@@ -1,5 +1,6 @@
 import { Fish } from '@/types/fish';
 import { getFishData } from '@/services/fishService';
+import Link from 'next/link';
 
 export default async function FishList() {
   const fishData = await getFishData();
@@ -19,15 +20,18 @@ export default async function FishList() {
 
       {!fetchError && (
         <div>
-          <h2 className='text-2xl font-semibold mb-4'>登録魚一覧</h2>
           {fishList && fishList.length > 0 ? (
             <ul className='space-y-2'>
               {fishList.map((fish: Fish) => (
-                <li key={fish.id} className='border p-4 rounded shadow'>
-                  <h3 className='text-xl font-medium'>{fish.name}</h3>
-                  <p className='text-gray-600'>和名: {fish.japaneseName}</p>
-                  <p className='text-gray-600'>分類: {fish.classification}</p>
-                  <p className='mt-2'>{fish.description}</p>
+                <li key={fish.id} className='border p-4 rounded shadow hover:bg-gray-50 cursor-pointer transition-colors'>
+                  <Link href={`/fish/${fish.id}`}>
+                    <div>
+                      <h3 className='text-xl font-medium'>{fish.name}</h3>
+                      <p className='text-gray-600'>和名: {fish.japaneseName}</p>
+                      <p className='text-gray-600'>分類: {fish.classification}</p>
+                      <p className='mt-2'>{fish.description}</p>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>

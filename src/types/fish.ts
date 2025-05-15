@@ -1,11 +1,11 @@
 export interface Fish {
-  id?: number;
+  id: number;
   name: string;
   japaneseName: string;
   classification: string;
   description: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ApiResponse {

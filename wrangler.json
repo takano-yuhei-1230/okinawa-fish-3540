@@ -20,5 +20,8 @@
       "preview_database_id": "DB",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "vars": {
+    "NEXTAUTH_URL": "https://okinawa-fish-3540.yuhei-takano.workers.dev"
+  }
 }

@@ -1,33 +1,72 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Fish, ApiResponse } from '@/types/fish';
+import { useRouter } from 'next/navigation';
 
-export default function FishForm() {
-  const [formData, setFormData] = useState({
+interface FishFormProps {
+  existingFish?: Fish;
+  isEditMode?: boolean;
+}
+
+// Omit id, createdAt, updatedAt from the form data type
+type FishFormData = Omit<Fish, 'id' | 'createdAt' | 'updatedAt'>;
+
+export default function FishForm({ existingFish, isEditMode = false }: FishFormProps) {
+  const router = useRouter();
+  const [formData, setFormData] = useState<FishFormData>(() => {
+    if (isEditMode && existingFish) {
+      return {
+        name: existingFish.name,
+        japaneseName: existingFish.japaneseName,
+        classification: existingFish.classification,
+        description: existingFish.description,
+      };
+    }
+    return {
+      name: '',
+      japaneseName: '',
+      classification: '',
+      description: '',
+    };
+  });
+
+  const [errors, setErrors] = useState<Record<keyof FishFormData, string>>({
     name: '',
     japaneseName: '',
     classification: '',
     description: '',
   });
 
-  const [errors, setErrors] = useState({
-    name: '',
-    japaneseName: '',
-    classification: '',
-    description: '',
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isEditMode && existingFish) {
+      setFormData({
+        name: existingFish.name,
+        japaneseName: existingFish.japaneseName,
+        classification: existingFish.classification,
+        description: existingFish.description,
+      });
+    } else if (!isEditMode) {
+        setFormData({
+            name: '',
+            japaneseName: '',
+            classification: '',
+            description: '',
+          });
+    }
+  }, [existingFish, isEditMode]);
 
   const validateForm = () => {
     let isValid = true;
-    const newErrors = {
+    const newErrors: Record<keyof FishFormData, string> = {
       name: '',
       japaneseName: '',
       classification: '',
       description: '',
     };
 
-    // 名前のバリデーション
     if (!formData.name) {
       newErrors.name = '名前は必須です';
       isValid = false;
@@ -36,7 +75,6 @@ export default function FishForm() {
       isValid = false;
     }
 
-    // 標準和名のバリデーション
     if (!formData.japaneseName) {
       newErrors.japaneseName = '標準和名は必須です';
       isValid = false;
@@ -45,18 +83,14 @@ export default function FishForm() {
       isValid = false;
     }
 
-    // 分類のバリデーション
     if (formData.classification && formData.classification.length > 50) {
       newErrors.classification = '分類は50文字以内で入力してください';
       isValid = false;
     }
 
-    // 詳細情報のバリデーション
-    if (formData.description) {
-      if (formData.description.length > 200) {
+    if (formData.description && formData.description.length > 200) {
         newErrors.description = '詳細情報は200文字以内で入力してください';
         isValid = false;
-      }
     }
     setErrors(newErrors);
     return isValid;
@@ -64,34 +98,46 @@ export default function FishForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      try {
-        const response = await fetch('/api/fish', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
+    if (!validateForm() || isSubmitting) return;
+    setIsSubmitting(true);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'データの保存に失敗しました');
-        }
+    try {
+      const apiUrl = isEditMode ? `/api/fish/${existingFish?.id}` : '/api/fish';
+      const method = isEditMode ? 'PUT' : 'POST';
 
-        const result = await response.json() as ApiResponse;
-        if (result.success) {
-          alert('データが正常に保存されました');
-          window.history.back();
-        }
-      } catch (error) {
-        console.error('Error details:', error);
-        if (error instanceof Error) {
-          alert(`エラーが発生しました: ${error.message}`);
-        } else {
-          alert('データの保存中にエラーが発生しました');
-        }
+      const response = await fetch(apiUrl, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || (isEditMode ? 'データの更新に失敗しました' : 'データの保存に失敗しました'));
       }
+
+      const result = await response.json() as ApiResponse;
+      if (result.success) {
+        alert(isEditMode ? 'データが正常に更新されました' : 'データが正常に保存されました');
+        if (isEditMode && existingFish) {
+          router.push(`/fish/${existingFish.id}`);
+        } else {
+          router.push('/');
+        }
+      } else {
+        throw new Error(result.error || (isEditMode ? '更新処理中にエラーが発生しました' : '保存処理中にエラーが発生しました'));
+      }
+    } catch (error) {
+      console.error('Error details:', error);
+      if (error instanceof Error) {
+        alert(`エラーが発生しました: ${error.message}`);
+      } else {
+        alert(isEditMode ? 'データの更新中に不明なエラーが発生しました' : 'データの保存中に不明なエラーが発生しました');
+      }
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -103,7 +149,7 @@ export default function FishForm() {
   };
 
   const ErrorMessage = ({ message }: { message: string }) => {
-    return message ? <p className='text-red-500'>{message}</p> : null;
+    return message ? <p className='text-red-500 text-sm mt-1'>{message}</p> : null;
   };
 
   return (
@@ -119,6 +165,7 @@ export default function FishForm() {
           value={formData.name}
           onChange={handleChange}
           className='w-full border p-2 rounded'
+          disabled={isSubmitting}
         />
         <ErrorMessage message={errors.name} />
       </div>
@@ -134,6 +181,7 @@ export default function FishForm() {
           value={formData.japaneseName}
           onChange={handleChange}
           className='w-full border p-2 rounded'
+          disabled={isSubmitting}
         />
         <ErrorMessage message={errors.japaneseName} />
       </div>
@@ -149,6 +197,7 @@ export default function FishForm() {
           value={formData.classification}
           onChange={handleChange}
           className='w-full border p-2 rounded'
+          disabled={isSubmitting}
         />
         <ErrorMessage message={errors.classification} />
       </div>
@@ -163,6 +212,7 @@ export default function FishForm() {
           value={formData.description}
           onChange={handleChange}
           className='w-full border p-2 rounded h-32'
+          disabled={isSubmitting}
         />
         <ErrorMessage message={errors.description} />
       </div>
@@ -170,13 +220,18 @@ export default function FishForm() {
       <div className='flex justify-end gap-4'>
         <button
           type='button'
-          onClick={() => window.history.back()}
+          onClick={() => router.back()}
           className='px-4 py-2 border rounded hover:bg-gray-100'
+          disabled={isSubmitting}
         >
           戻る
         </button>
-        <button type='submit' className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600'>
-          登録
+        <button
+          type='submit'
+          className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400'
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? '処理中...' : (isEditMode ? '更新' : '登録')}
         </button>
       </div>
     </form>
